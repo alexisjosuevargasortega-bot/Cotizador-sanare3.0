@@ -1,0 +1,21 @@
+{
+  "name": "Cotizador Sanare Premium",
+  "short_name": "Sanare",
+  "description": "Cotizador Oncológico Sanare Premium",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0A497B",
+  "icons": [
+    {
+      "src": "logo-sanare.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo-sanare.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+[
+  {
+    "id": "1781897729623114",
+    "form": {
+      "sede": "Toluca",
+      "fechaEmision": "2026-06-19",
+      "fechaValidez": "2026-07-04",
+      "paciente": "Eduardo Antonio Riesco Santoscov",
+      "medico": "Dr. Manuel Martínez Marino",
+      "modalidadPago": "BOLSILLO",
+      "dx": "",
+      "esquema": "Nivolumab + Ipilimumab (dual IO)  ·  Inmunoterapia dual (anti-PD1 + anti-CTLA4)",
+      "kam": "",
+      "fechaProg": ""
+    },
+    "state": {
+      "modalidad": "BOLSILLO",
+      "items": [
+        {
+          "id": 1781897239049,
+          "type": "esq_med",
+          "descripcion": "Nivolumab 100mg/10ml C/1 FA",
+          "patente": {
+            "marca": "Opdivo",
+            "precio_vial": 26400,
+            "precio_total": 79200,
+            "viales": 3,
+            "premed": false
+          },
+          "bio": {
+            "marca": "Opdivo",
+            "precio_vial": 26400,
+            "precio_total": 79200,
+            "viales": 3,
+            "premed": false
+          },
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897239050,
+          "type": "esq_med",
+          "descripcion": "Ipilimumab 50mg/10ml C/1 FA",
+          "patente": {
+            "marca": "Yervoy",
+            "precio_vial": 55000,
+            "precio_total": 110000,
+            "viales": 2,
+            "premed": false
+          },
+          "bio": {
+            "marca": "Yervoy",
+            "precio_vial": 55000,
+            "precio_total": 110000,
+            "viales": 2,
+            "premed": false
+          },
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897239051,
+          "type": "esq_med",
+          "descripcion": "Dexametasona 8mg/2ml",
+          "patente": {
+            "marca": "Alin",
+            "precio_vial": 64.74,
+            "precio_total": 64.74,
+            "viales": 1,
+            "premed": true
+          },
+          "bio": {
+            "marca": "Sinkel",
+            "precio_vial": 6.82,
+            "precio_total": 6.82,
+            "viales": 1,
+            "premed": true
+          },
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897239052,
+          "type": "esq_serv",
+          "descripcion": "KIT DE INSUMOS",
+          "codigo": "SERVICIO02",
+          "servData": {
+            "descripcion": "KIT DE INSUMOS",
+            "codigo": "SERVICIO02",
+            "BOLSILLO": 1800,
+            "PMP": 1800,
+            "BUPA": 2100,
+            "AXA": 2000,
+            "METLIFE": 1800,
+            "INBURSA": 1872,
+            "PLAN SEGURO": 1872
+          },
+          "customPrice": 1800,
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897239053,
+          "type": "esq_serv",
+          "descripcion": "SILLÓN DE INFUSIÓN - DERECHO DE SALA",
+          "codigo": "SERVICIO05",
+          "servData": {
+            "descripcion": "SILLÓN DE INFUSIÓN - DERECHO DE SALA",
+            "codigo": "SERVICIO05",
+            "BOLSILLO": 2500,
+            "PMP": 2500,
+            "BUPA": 2632,
+            "AXA": 2500,
+            "METLIFE": 2500,
+            "INBURSA": 2600,
+            "PLAN SEGURO": 2600
+          },
+          "customPrice": 2500,
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897239054,
+          "type": "esq_serv",
+          "descripcion": "SERVICIO DE MEZCLA",
+          "codigo": "SERVICIO08",
+          "servData": {
+            "descripcion": "SERVICIO DE MEZCLA",
+            "codigo": "SERVICIO08",
+            "BOLSILLO": 1200,
+            "PMP": 1200,
+            "BUPA": 4526,
+            "AXA": 4300,
+            "METLIFE": 4500,
+            "INBURSA": 4500,
+            "PLAN SEGURO": 4500
+          },
+          "customPrice": 1200,
+          "cant": 1,
+          "desc": 0,
+          "fromEsquema": true
+        },
+        {
+          "id": 1781897703231.853,
+          "type": "med",
+          "pa": "ANALGÉSICOS / ANTIFEBRILES",
+          "innovador": {
+            "EAN": "7502253073617",
+            "DESCRIPCION": "Lidocaina/Prilocaina 1g C/2 PAR",
+            "NOMBRE COMERCIAL": "EMLA",
+            "CLASIFICACION": "INNOVADOR / PATENTE",
+            "TIPO DE USO": "PREMEDICACIÓN",
+            "PMP": 295.1,
+            "BOLSILLO": 295.1,
+            "BUPA": 295.1,
+            "AXA": 295.1,
+            "METLIFE": 295.1,
+            "INBURSA": 295.1,
+            "PLAN SEGURO": 295.1,
+            "PA": "ANALGÉSICOS / ANTIFEBRILES",
+            "LAB": "ASPEN LABS",
+            "ESQUEMA_CATALOGO": "",
+            "DOSIS_USUAL": ""
+          },
+          "bio": {
+            "EAN": "7501300407030",
+            "DESCRIPCION": "Ketorolaco 30mg/2ml",
+            "NOMBRE COMERCIAL": "DOLAC",
+            "CLASIFICACION": "BIOEQUIVALENTE",
+            "TIPO DE USO": "PREMEDICACIÓN",
+            "PMP": 453,
+            "BOLSILLO": 453,
+            "BUPA": 249.375,
+            "AXA": 249.375,
+            "METLIFE": 249.375,
+            "INBURSA": 249.375,
+            "PLAN SEGURO": 249.375,
+            "PA": "ANALGÉSICOS / ANTIFEBRILES",
+            "LAB": "SIEGFRIED",
+            "ESQUEMA_CATALOGO": "",
+            "DOSIS_USUAL": ""
+          },
+          "cant": 2,
+          "desc": 0
+        },
+        {
+          "id": 1781897703232.5,
+          "type": "med",
+          "pa": "ANTIHISTAMÍNICOS",
+          "innovador": null,
+          "bio": {
+            "EAN": "7501165001718",
+            "DESCRIPCION": "Fexofenadina 120mg C/10 TAB",
+            "NOMBRE COMERCIAL": "ALLEGRA",
+            "CLASIFICACION": "BIOEQUIVALENTE",
+            "TIPO DE USO": "PREMEDICACIÓN",
+            "PMP": 529.78,
+            "BOLSILLO": 529.78,
+            "BUPA": 464.2375,
+            "AXA": 464.2375,
+            "METLIFE": 464.2375,
+            "INBURSA": 464.2375,
+            "PLAN SEGURO": 464.2375,
+            "PA": "ANTIHISTAMÍNICOS",
+            "LAB": "SANOFI",
+            "ESQUEMA_CATALOGO": "",
+            "DOSIS_USUAL": ""
+          },
+          "cant": 1,
+          "desc": 0
+        }
+      ]
+    },
+    "total": "$196,764.72",
+    "createdAt": 1781897729624,
+    "updatedAt": 1781897729624
+  }
+]
