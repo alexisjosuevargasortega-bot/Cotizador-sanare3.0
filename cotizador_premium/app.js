@@ -975,7 +975,7 @@ if (btnAnalizarOcr && ocrFile) {
       
       btnAnalizarOcr.textContent = 'Analizando con IA...';
 
-      const token = localStorage.getItem('sanare_token');
+      const token = currentAuthToken;
       // 2. Send to backend
       const response = await fetch('/api/extract', {
         method: 'POST',
@@ -1060,9 +1060,10 @@ if (btnAnalizarOcr && ocrFile) {
 }
 
 // ---- LOGIN LOGIC ----
+let currentAuthToken = null;
+
 function checkAuth() {
-  const token = localStorage.getItem('sanare_token');
-  if (token) {
+  if (currentAuthToken) {
     dom.loginOverlay.style.display = 'none';
     dom.appContainer.style.display = 'block';
   } else {
@@ -1094,7 +1095,7 @@ if (dom.btnLogin) {
       
       const data = await res.json();
       if (res.ok && data.token) {
-        localStorage.setItem('sanare_token', data.token);
+        currentAuthToken = data.token;
         dom.loginError.style.display = 'none';
         checkAuth();
       } else {
@@ -1169,7 +1170,7 @@ if (btnSaveQuote) {
     };
 
     try {
-      const token = localStorage.getItem('sanare_token');
+      const token = currentAuthToken;
       const res = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 
@@ -1200,7 +1201,7 @@ if (btnVerHistorico) {
     historialList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Cargando historial...</div>';
     
     try {
-      const token = localStorage.getItem('sanare_token');
+      const token = currentAuthToken;
       const res = await fetch('/api/quotes', {
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -621,3 +621,52 @@ select.premium-input {
 .row-esquema-flash {
   animation: flashRow 1.5s ease forwards;
 }
+
+/* ---- LOGIN OVERLAY ---- */
+.login-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 73, 123, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 90%;
+  max-width: 400px;
+  padding: 40px 30px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+}
+
+.login-card h2 {
+  color: var(--primary-color);
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+
+.login-card p {
+  color: var(--text-muted);
+  margin-bottom: 25px;
+}
+
+.login-logo {
+  width: 120px;
+  margin-bottom: 10px;
+  animation: levitate 4s ease-in-out infinite;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
