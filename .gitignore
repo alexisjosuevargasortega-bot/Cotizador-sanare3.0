@@ -1,0 +1,6 @@
+node_modules/
+.env
+cotizaciones.json
+.DS_Store
+
+.vercel

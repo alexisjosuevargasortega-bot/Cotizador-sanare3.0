@@ -4,7 +4,7 @@ const Groq = require('groq-sdk');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
-const basicAuth = require('express-basic-auth');
+const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
@@ -12,22 +12,46 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// ---- SEGURIDAD (BASIC AUTH) ----
-app.use(basicAuth({
-    users: {
-        'admin': 'g84k$2H*9Xl!',
-        'quimico': 'juvkSxrq?2@2',
-        'BI': 'fdSB%P174bnz'
-    },
-    challenge: true,
-    realm: 'Sanare Cotizador'
-}));
+// Secret key para los JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'SanareSuperSecretKey2026';
+
+// Usuarios válidos
+const validUsers = {
+    'admin': 'g84k$2H*9Xl!',
+    'quimico': 'juvkSxrq?2@2',
+    'BI': 'fdSB%P174bnz'
+};
+
+// Middleware para verificar token
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token == null) return res.sendStatus(401);
+    
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+}
+
+// Ruta de Login
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    if (validUsers[username] && validUsers[username] === password) {
+        const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '12h' });
+        res.json({ token });
+    } else {
+        res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+});
 
 // ---- SERVIR FRONTEND ESTATICO ----
 // Sirve la carpeta 'cotizador_premium' en la raíz (/)
 app.use(express.static(path.join(__dirname, '../cotizador_premium')));
 
-app.post('/api/extract', async (req, res) => {
+app.post('/api/extract', authenticateToken, async (req, res) => {
     try {
         const { imageBase64 } = req.body;
 
@@ -106,7 +130,7 @@ function writeQuotes(quotes) {
     fs.writeFileSync(QUOTES_FILE, JSON.stringify(quotes, null, 2), 'utf8');
 }
 
-app.get('/api/quotes', (req, res) => {
+app.get('/api/quotes', authenticateToken, (req, res) => {
     try {
         const quotes = readQuotes();
         // Ordenar por fecha descendente
@@ -117,7 +141,7 @@ app.get('/api/quotes', (req, res) => {
     }
 });
 
-app.post('/api/quotes', (req, res) => {
+app.post('/api/quotes', authenticateToken, (req, res) => {
     try {
         const newQuote = req.body;
         let quotes = readQuotes();
@@ -150,3 +174,6 @@ app.listen(PORT, () => {
     console.log(`Servidor de OCR (Groq) corriendo en http://localhost:${PORT}`);
     console.log('Esperando documentos para analizar...');
 });
+
+// Requerido para Vercel
+module.exports = app;

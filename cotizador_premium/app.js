@@ -6,6 +6,14 @@ let state = {
 
 // Elements
 const dom = {
+  // Login DOM
+  loginOverlay: document.getElementById('login-overlay'),
+  appContainer: document.getElementById('app-container'),
+  loginUser: document.getElementById('loginUser'),
+  loginPass: document.getElementById('loginPass'),
+  btnLogin: document.getElementById('btnLogin'),
+  loginError: document.getElementById('loginError'),
+  
   sede: document.getElementById('sede'),
   direccion: document.getElementById('direccion'),
   telefono: document.getElementById('telefono'),
@@ -967,11 +975,13 @@ if (btnAnalizarOcr && ocrFile) {
       
       btnAnalizarOcr.textContent = 'Analizando con IA...';
 
+      const token = localStorage.getItem('sanare_token');
       // 2. Send to backend
       const response = await fetch('/api/extract', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ imageBase64 })
       });
@@ -1049,6 +1059,62 @@ if (btnAnalizarOcr && ocrFile) {
   });
 }
 
+// ---- LOGIN LOGIC ----
+function checkAuth() {
+  const token = localStorage.getItem('sanare_token');
+  if (token) {
+    dom.loginOverlay.style.display = 'none';
+    dom.appContainer.style.display = 'block';
+  } else {
+    dom.loginOverlay.style.display = 'flex';
+    dom.appContainer.style.display = 'none';
+  }
+}
+
+if (dom.btnLogin) {
+  dom.btnLogin.addEventListener('click', async () => {
+    const username = dom.loginUser.value.trim();
+    const password = dom.loginPass.value.trim();
+    
+    if (!username || !password) {
+      dom.loginError.textContent = 'Por favor ingresa usuario y contraseña';
+      dom.loginError.style.display = 'block';
+      return;
+    }
+    
+    dom.btnLogin.textContent = 'Verificando...';
+    dom.btnLogin.disabled = true;
+    
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('sanare_token', data.token);
+        dom.loginError.style.display = 'none';
+        checkAuth();
+      } else {
+        dom.loginError.textContent = data.error || 'Credenciales inválidas';
+        dom.loginError.style.display = 'block';
+      }
+    } catch (err) {
+      dom.loginError.textContent = 'Error de red. Intenta de nuevo.';
+      dom.loginError.style.display = 'block';
+    } finally {
+      dom.btnLogin.textContent = 'Ingresar Seguramento';
+      dom.btnLogin.disabled = false;
+    }
+  });
+}
+
+// Ejecutar verificación de auth al cargar
+checkAuth();
+
+// ---- INITIALIZATION ----
 // ---- HISTORIAL LOGIC ----
 let currentQuoteId = null;
 
@@ -1103,9 +1169,13 @@ if (btnSaveQuote) {
     };
 
     try {
+      const token = localStorage.getItem('sanare_token');
       const res = await fetch('/api/quotes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
@@ -1130,7 +1200,10 @@ if (btnVerHistorico) {
     historialList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Cargando historial...</div>';
     
     try {
-      const res = await fetch('/api/quotes');
+      const token = localStorage.getItem('sanare_token');
+      const res = await fetch('/api/quotes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const quotes = await res.json();
       
       if (quotes.length === 0) {

@@ -22,10 +22,31 @@
 </head>
 <body>
 
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card glass-panel">
+      <img src="logo-sanare.png" alt="Sanare Logo" class="login-logo" />
+      <h2>Acceso Premium</h2>
+      <p>Cotizador Oncológico Exclusivo</p>
+      
+      <div class="form-group" style="text-align: left;">
+        <label>Usuario</label>
+        <input type="text" id="loginUser" class="premium-input" placeholder="Ingresa tu usuario" />
+      </div>
+      <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" class="premium-input" placeholder="Ingresa tu contraseña" />
+      </div>
+      
+      <button id="btnLogin" class="btn btn-primary" style="width: 100%;">Ingresar Seguramento</button>
+      <div id="loginError" style="color: #e74c3c; margin-top: 10px; display: none; font-size: 0.9rem;"></div>
+    </div>
+  </div>
+
   <!-- Hidden Container for PDF rendering -->
   <div id="pdf-container" style="display: none;"></div>
 
-  <main class="app-container">
+  <main class="app-container" id="app-container" style="display: none;">
     <header class="glass-panel main-header header-glow">
       <div class="logo-container">
         <img src="logo-sanare.png" alt="Sanare" class="logo logo-levitate" />
