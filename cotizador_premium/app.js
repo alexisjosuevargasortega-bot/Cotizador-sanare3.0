@@ -987,7 +987,13 @@ if (btnAnalizarOcr && ocrFile) {
       });
 
       if (!response.ok) {
-        const err = await response.json();
+        let err;
+        try {
+          err = await response.json();
+        } catch (e) {
+          const text = await response.text();
+          throw new Error(text || 'Error al procesar el documento');
+        }
         throw new Error(err.error || 'Error al procesar el documento');
       }
 
