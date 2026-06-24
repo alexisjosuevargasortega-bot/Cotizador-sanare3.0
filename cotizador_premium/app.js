@@ -986,18 +986,22 @@ if (btnAnalizarOcr && ocrFile) {
         body: JSON.stringify({ imageBase64 })
       });
 
-      if (!response.ok) {
-        let err;
-        try {
-          err = await response.json();
-        } catch (e) {
-          const text = await response.text();
-          throw new Error(text || 'Error al procesar el documento');
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        if (!response.ok) {
+          throw new Error(`Error del servidor (${response.status}): ${responseText}`);
+        } else {
+          throw new Error('Respuesta del servidor no es un JSON válido.');
         }
-        throw new Error(err.error || 'Error al procesar el documento');
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar el documento');
+      }
+
       console.log("OCR Data extraída:", data);
 
       // 3. Auto-fill fields
