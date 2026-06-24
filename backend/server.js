@@ -65,16 +65,28 @@ app.post('/api/extract', authenticateToken, async (req, res) => {
 
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-        const prompt = `Eres un asistente médico experto. Revisa la imagen adjunta, la cual es una indicación médica o receta (puede estar escrita a mano o en computadora). 
-Tu tarea es extraer la siguiente información en formato JSON estrictamente:
-- "paciente": Nombre completo del paciente (si se menciona). Si no, null.
-- "medico": Nombre completo del médico tratante (si se menciona). Si no, null.
-- "diagnostico": Diagnóstico o comentarios médicos mencionados. Si no, null.
-- "medicamentos": Una lista de objetos, donde cada objeto tiene:
-    - "nombre": El nombre del medicamento o servicio (trata de extraer el nombre genérico o de patente más claro posible).
-    - "cantidad": La cantidad o número de ciclos/cajas solicitadas (solo el número entero). Si no se especifica, asume 1.
+        const prompt = `Eres un asistente especializado en leer indicaciones médicas y recetas mexicanas. 
+Analiza la imagen adjunta con MUCHA atención y extrae los datos EXACTAMENTE como aparecen escritos. 
 
-No agregues markdown de bloques de código como \`\`\`json, solo devuelve el objeto JSON crudo sin nada más.`;
+REGLAS ESTRICTAS:
+1. NO inventes ni supongas información. Si no puedes leer algo claramente, pon null.
+2. Copia el texto TAL CUAL aparece en el documento, sin corregir ni cambiar nombres propios.
+3. Para el PACIENTE: busca palabras clave como "Paciente:", "Nombre:", "Sr./Sra./Srta.", o el nombre que aparezca en el encabezado.
+4. Para el MÉDICO: busca "Dr.", "Dra.", "Médico:", "Médico tratante:", firma, o cédula profesional.
+5. Para el DIAGNÓSTICO: busca "Diagnóstico:", "Dx:", "Padecimiento:", "Motivo:", o texto descriptivo de la enfermedad.
+6. Para MEDICAMENTOS: extrae ÚNICAMENTE los medicamentos/fármacos listados con sus cantidades. Incluye el nombre tal como está escrito (puede ser nombre genérico, comercial o ambos). NO incluyas servicios ni procedimientos médicos.
+7. Si la imagen es borrosa o ilegible en algún campo, devuelve null para ese campo.
+8. La cantidad debe ser solo un número entero. Si no se especifica, usa 1.
+
+Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta (sin markdown, sin bloques de código, sin explicaciones adicionales):
+{
+  "paciente": "Nombre completo del paciente o null",
+  "medico": "Nombre completo del médico o null",
+  "diagnostico": "Diagnóstico o null",
+  "medicamentos": [
+    { "nombre": "Nombre del medicamento", "cantidad": 1 }
+  ]
+}`;
 
         console.log(`Procesando imagen con Groq Vision API...`);
         
@@ -87,23 +99,37 @@ No agregues markdown de bloques de código como \`\`\`json, solo devuelve el obj
                         {
                             type: 'image_url',
                             image_url: {
-                                url: `data:image/jpeg;base64,${imageBase64}`
+                                url: `data:image/jpeg;base64,${imageBase64}`,
+                                detail: 'high'
                             }
                         }
                     ]
                 }
             ],
             model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-            temperature: 0.1,
+            temperature: 0.05,
             max_tokens: 1024
         });
 
         let jsonText = chatCompletion.choices[0]?.message?.content || "";
         
-        // Limpiar en caso de que Groq devuelva backticks
-        jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Limpiar en caso de que el modelo devuelva markdown o texto extra
+        jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        
+        // Extraer solo el JSON si hay texto adicional antes o después
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('La IA no devolvió un JSON válido. Respuesta: ' + jsonText.substring(0, 200));
+        }
+        jsonText = jsonMatch[0];
         
         const data = JSON.parse(jsonText);
+
+        // Sanitizar: asegurar que medicamentos sea siempre un array
+        if (!Array.isArray(data.medicamentos)) {
+            data.medicamentos = [];
+        }
+
         console.log('Extracción exitosa:', data);
         res.json(data);
 

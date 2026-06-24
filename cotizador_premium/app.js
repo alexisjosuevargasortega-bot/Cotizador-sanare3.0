@@ -1009,19 +1009,63 @@ if (btnAnalizarOcr && ocrFile) {
       if (data.medico) dom.medico.value = data.medico;
       if (data.diagnostico) document.getElementById('dx').value = data.diagnostico;
 
-      // 4. Fuzzy match medicamentos and add them
+      // Helper: multi-pass fuzzy search in catalog
+      function buscarMedicamento(nombre) {
+        const searchStr = nombre.toLowerCase().trim();
+        
+        // Palabras clave a ignorar en la búsqueda (unidades, dosis, etc.)
+        const stopWords = ['mg', 'ml', 'mcg', 'ui', 'g', 'iv', 'im', 'sc', 'vo', 'oral', 'cada', 'por', 'de', 'en', 'con', 'sin'];
+        const searchWords = searchStr.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+        // Intento 1: coincidencia exacta en PA o DESCRIPCION o NOMBRE COMERCIAL
+        let match = SANARE_DATA.medicamentos.find(m =>
+          (m.PA && m.PA.toLowerCase() === searchStr) ||
+          (m.DESCRIPCION && m.DESCRIPCION.toLowerCase() === searchStr) ||
+          (m['NOMBRE COMERCIAL'] && m['NOMBRE COMERCIAL'].toLowerCase() === searchStr)
+        );
+        if (match) return match;
+
+        // Intento 2: el catálogo contiene la búsqueda completa (subcadena directa)
+        match = SANARE_DATA.medicamentos.find(m =>
+          (m.PA && m.PA.toLowerCase().includes(searchStr)) ||
+          (m.DESCRIPCION && m.DESCRIPCION.toLowerCase().includes(searchStr)) ||
+          (m['NOMBRE COMERCIAL'] && m['NOMBRE COMERCIAL'].toLowerCase().includes(searchStr))
+        );
+        if (match) return match;
+
+        // Intento 3: la búsqueda contiene al catálogo (el nombre del catálogo aparece dentro del texto OCR)
+        match = SANARE_DATA.medicamentos.find(m => {
+          const pa = m.PA ? m.PA.toLowerCase() : '';
+          const desc = m.DESCRIPCION ? m.DESCRIPCION.toLowerCase() : '';
+          const comercial = m['NOMBRE COMERCIAL'] ? m['NOMBRE COMERCIAL'].toLowerCase() : '';
+          return (pa.length > 3 && searchStr.includes(pa)) ||
+                 (desc.length > 3 && searchStr.includes(desc)) ||
+                 (comercial.length > 3 && searchStr.includes(comercial));
+        });
+        if (match) return match;
+
+        // Intento 4: al menos la mitad de las palabras clave coinciden en algún campo
+        if (searchWords.length > 0) {
+          match = SANARE_DATA.medicamentos.find(m => {
+            const haystack = [m.PA, m.DESCRIPCION, m['NOMBRE COMERCIAL']]
+              .filter(Boolean).join(' ').toLowerCase();
+            const hits = searchWords.filter(w => haystack.includes(w));
+            return hits.length >= Math.ceil(searchWords.length / 2);
+          });
+          if (match) return match;
+        }
+
+        return null;
+      }
+
+      // 4. Match medicamentos and add them
       let encontrados = 0;
+      const noEncontrados = [];
       if (data.medicamentos && Array.isArray(data.medicamentos)) {
         data.medicamentos.forEach(medAI => {
           if (!medAI.nombre) return;
-          const searchStr = medAI.nombre.toLowerCase().trim();
           
-          // Buscar en SANARE_DATA.medicamentos
-          const match = SANARE_DATA.medicamentos.find(m => 
-            (m.PA && m.PA.toLowerCase().includes(searchStr)) || 
-            (m.DESCRIPCION && m.DESCRIPCION.toLowerCase().includes(searchStr)) ||
-            (m['NOMBRE COMERCIAL'] && m['NOMBRE COMERCIAL'].toLowerCase().includes(searchStr))
-          );
+          const match = buscarMedicamento(medAI.nombre);
 
           if (match) {
             const pa = match.PA;
@@ -1048,15 +1092,21 @@ if (btnAnalizarOcr && ocrFile) {
             });
             encontrados++;
           } else {
-             console.warn("IA medicamento no encontrado en catálogo:", medAI.nombre);
+            console.warn("IA medicamento no encontrado en catálogo:", medAI.nombre);
+            noEncontrados.push(medAI.nombre);
           }
         });
       }
 
       renderCart();
 
+      let badgeMsg = `✅ IA: ${encontrados} medicamento(s) emparejado(s). Por favor revisa la precisión.`;
+      if (noEncontrados.length > 0) {
+        badgeMsg += ` ⚠️ No encontrados en catálogo: ${noEncontrados.join(', ')}`;
+      }
       ocrBadge.style.display = 'inline-flex';
-      ocrBadge.innerHTML = `✅ IA: Extraído y ${encontrados} meds emparejados. Por favor revisa la precisión.`;
+      ocrBadge.innerHTML = badgeMsg;
+
 
     } catch (error) {
       console.error(error);
