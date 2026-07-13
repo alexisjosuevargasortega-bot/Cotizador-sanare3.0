@@ -5,8 +5,22 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, collection, getDocs, doc, setDoc } = require('firebase/firestore');
 
 dotenv.config();
+
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAX1AA7tTnlnApVZlnnuMkB42k3W5IlwoM",
+  authDomain: "sanare-cotizador.firebaseapp.com",
+  projectId: "sanare-cotizador",
+  storageBucket: "sanare-cotizador.firebasestorage.app",
+  messagingSenderId: "902613920907",
+  appId: "1:902613920907:web:0e73bd5def3cf4396a788e"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 const app = express();
 app.use(cors());
@@ -113,59 +127,41 @@ No agregues markdown de bloques de código como \`\`\`json, solo devuelve el obj
     }
 });
 
-// ---- HISTORICO DE COTIZACIONES ----
-const QUOTES_FILE = path.join(__dirname, 'cotizaciones.json');
-
-function readQuotes() {
-    if (!fs.existsSync(QUOTES_FILE)) return [];
+// ---- HISTORICO DE COTIZACIONES (FIRESTORE) ----
+app.get('/api/quotes', authenticateToken, async (req, res) => {
     try {
-        const data = fs.readFileSync(QUOTES_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch(e) {
-        return [];
-    }
-}
-
-function writeQuotes(quotes) {
-    fs.writeFileSync(QUOTES_FILE, JSON.stringify(quotes, null, 2), 'utf8');
-}
-
-app.get('/api/quotes', authenticateToken, (req, res) => {
-    try {
-        const quotes = readQuotes();
+        const quotesSnapshot = await getDocs(collection(db, 'cotizaciones'));
+        const quotes = [];
+        quotesSnapshot.forEach((doc) => {
+            quotes.push(doc.data());
+        });
         // Ordenar por fecha descendente
         quotes.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
         res.json(quotes);
     } catch (error) {
-        res.status(500).json({ error: 'Error leyendo historial' });
+        console.error("Error leyendo historial de Firebase:", error);
+        res.status(500).json({ error: 'Error leyendo historial', details: error.message });
     }
 });
 
-app.post('/api/quotes', authenticateToken, (req, res) => {
+app.post('/api/quotes', authenticateToken, async (req, res) => {
     try {
         const newQuote = req.body;
-        let quotes = readQuotes();
         
-        if (newQuote.id) {
-            // Actualizar existente
-            const idx = quotes.findIndex(q => q.id === newQuote.id);
-            if (idx >= 0) {
-                quotes[idx] = { ...newQuote, updatedAt: Date.now() };
-            } else {
-                quotes.push({ ...newQuote, updatedAt: Date.now() });
-            }
-        } else {
-            // Crear nueva
+        if (!newQuote.id) {
             newQuote.id = Date.now().toString() + Math.floor(Math.random()*1000);
             newQuote.createdAt = Date.now();
-            newQuote.updatedAt = Date.now();
-            quotes.push(newQuote);
         }
+        newQuote.updatedAt = Date.now();
         
-        writeQuotes(quotes);
+        // Guardar o actualizar en Firestore usando el ID como identificador del documento
+        const docRef = doc(db, 'cotizaciones', newQuote.id);
+        await setDoc(docRef, newQuote);
+        
         res.json({ success: true, id: newQuote.id });
     } catch (error) {
-        res.status(500).json({ error: 'Error guardando cotización' });
+        console.error("Error guardando en Firebase:", error);
+        res.status(500).json({ error: 'Error guardando cotización', details: error.message });
     }
 });
 
