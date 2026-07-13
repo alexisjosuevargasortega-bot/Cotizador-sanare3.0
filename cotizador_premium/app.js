@@ -285,19 +285,20 @@ function renderCart() {
       }
       dom.tbodyBio.appendChild(trB);
 
-    // ---- Medicamento from ESQUEMA (direct Excel prices) ----
+    // ---- Medicamento from ESQUEMA (precios por modalidad) ----
     } else if (item.type === 'esq_med') {
       const premed_icon = (d) => d && d.premed ? ' <span title="Premedicación" style="color:#F59E0B; font-size:10px;">⚕ Premed</span>' : '';
 
-      // PATENTE column
+      // PATENTE column — usa precio según modalidad activa
       const trI = document.createElement('tr');
       if (item.patente) {
-        const p = item.patente.precio_total * item.cant;
+        const { precio_vial: pv, precio_total: pt } = getPrecioEsqItem(item.patente);
+        const p = pt * item.cant;
         subInno += p;
         trI.innerHTML = `
           <td><strong>${item.descripcion}</strong>${premed_icon(item.patente)}<br><small style="color:#64748b;">${item.patente.marca} · ${item.patente.viales} vial(es)</small></td>
           <td>${item.cant}</td>
-          <td>${formatCurrency(item.patente.precio_vial)}</td>
+          <td>${formatCurrency(pv)}</td>
           <td>-</td>
           <td>${formatCurrency(p)}</td>
           <td><button class="btn-remove" onclick="removeItem(${item.id})">X</button></td>
@@ -309,27 +310,29 @@ function renderCart() {
       }
       dom.tbodyInnovador.appendChild(trI);
 
-      // BIO column
+      // BIO column — usa precio según modalidad activa
       const trB = document.createElement('tr');
       if (item.bio) {
-        const p = item.bio.precio_total * item.cant;
+        const { precio_vial: pv, precio_total: pt } = getPrecioEsqItem(item.bio);
+        const p = pt * item.cant;
         subBio += p;
         trB.innerHTML = `
           <td><strong>${item.descripcion}</strong>${premed_icon(item.bio)}<br><small style="color:#64748b;">${item.bio.marca} · ${item.bio.viales} vial(es)</small></td>
           <td>${item.cant}</td>
-          <td>${formatCurrency(item.bio.precio_vial)}</td>
+          <td>${formatCurrency(pv)}</td>
           <td>-</td>
           <td>${formatCurrency(p)}</td>
           <td><button class="btn-remove" onclick="removeItem(${item.id})">X</button></td>
         `;
       } else if (item.patente) {
         // Fallback: show patente price in bio column
-        const p = item.patente.precio_total * item.cant;
+        const { precio_vial: pv, precio_total: pt } = getPrecioEsqItem(item.patente);
+        const p = pt * item.cant;
         subBio += p;
         trB.innerHTML = `
           <td><strong>${item.descripcion}</strong> <span style="font-size:10px;color:#0A497B;">(Usa Patente)</span><br><small style="color:#64748b;">${item.patente.marca} · ${item.patente.viales} vial(es)</small></td>
           <td>${item.cant}</td>
-          <td>${formatCurrency(item.patente.precio_vial)}</td>
+          <td>${formatCurrency(pv)}</td>
           <td>-</td>
           <td>${formatCurrency(p)}</td>
           <td><button class="btn-remove" onclick="removeItem(${item.id})">X</button></td>
@@ -476,9 +479,10 @@ function generatePDF(type) {
       const target = (type === 'bio') ? (item.bio || item.patente) : (item.patente || item.bio);
       if (!target) return;
       hasMeds = true;
-      
-      const p_vial = target.precio_vial;
-      const sub = target.precio_total * item.cant;
+
+      // Usar precios por modalidad activa también en PDF
+      const { precio_vial: p_vial, precio_total: pt } = getPrecioEsqItem(target);
+      const sub = pt * item.cant;
       subTotalMed += sub;
 
       const isFallback = (type === 'bio' && !item.bio) || (type !== 'bio' && !item.patente);
@@ -746,6 +750,52 @@ function getPrecioServicioEsq(serv) {
   return parseFloat(priceMap[mod]) || parseFloat(serv.BOLSILLO) || 0;
 }
 
+/**
+ * Busca en el catálogo de medicamentos por nombre comercial (marca)
+ * y devuelve un mapa de precios por vial para cada modalidad.
+ * Si no se encuentra, devuelve el precio_vial del esquema como fallback.
+ */
+function buildPreciosFromCatalog(marca, precio_vial_fallback) {
+  const mods = ['BOLSILLO', 'BUPA', 'AXA', 'METLIFE', 'INBURSA', 'PLAN SEGURO', 'PMP'];
+  const empty = {};
+  mods.forEach(m => empty[m] = precio_vial_fallback);
+
+  if (!marca) return empty;
+  const marcaLower = marca.trim().toLowerCase();
+
+  // Buscar por nombre comercial exacto (insensible a mayúsculas)
+  const found = (SANARE_DATA.medicamentos || []).find(med => {
+    const nc = (med['NOMBRE COMERCIAL'] || '').trim().toLowerCase();
+    return nc === marcaLower;
+  });
+
+  if (!found) return empty;
+
+  // Construir mapa de precio POR VIAL desde el catálogo
+  const result = {};
+  mods.forEach(m => {
+    const val = parseFloat(found[m]);
+    result[m] = (!isNaN(val) && val > 0) ? val : precio_vial_fallback;
+  });
+  return result;
+}
+
+/**
+ * Dado un objeto {marca, precio_vial, precio_total, viales, premed, precios_por_vial},
+ * retorna {precio_vial, precio_total} según la modalidad activa.
+ */
+function getPrecioEsqItem(part) {
+  if (!part) return { precio_vial: 0, precio_total: 0 };
+  const mod = state.modalidad;
+  if (part.precios_por_vial && part.precios_por_vial[mod] !== undefined) {
+    const pv = part.precios_por_vial[mod];
+    const viales = part.viales || 1;
+    return { precio_vial: pv, precio_total: pv * viales };
+  }
+  // Fallback al precio fijo del esquema
+  return { precio_vial: part.precio_vial || 0, precio_total: part.precio_total || 0 };
+}
+
 function cargarEsquema() {
   const searchVal = esquemaSearch.value;
   if (!searchVal) return;
@@ -789,6 +839,8 @@ function cargarEsquema() {
         precio_total: pat.precio_total,
         viales: pat.viales,
         premed: pat.premed,
+        // Lookup de precios por modalidad desde el catálogo
+        precios_por_vial: buildPreciosFromCatalog(pat.marca, pat.precio_vial),
       },
       bio: bioMatch ? {
         marca: bioMatch.marca,
@@ -796,6 +848,7 @@ function cargarEsquema() {
         precio_total: bioMatch.precio_total,
         viales: bioMatch.viales,
         premed: bioMatch.premed,
+        precios_por_vial: buildPreciosFromCatalog(bioMatch.marca, bioMatch.precio_vial),
       } : null,
       cant: 1,          // cycles (multiplier on top of viales)
       desc: 0,
@@ -819,6 +872,7 @@ function cargarEsquema() {
           precio_total: bio.precio_total,
           viales: bio.viales,
           premed: bio.premed,
+          precios_por_vial: buildPreciosFromCatalog(bio.marca, bio.precio_vial),
         },
         cant: 1,
         desc: 0,
