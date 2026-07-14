@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cotizador Sanare 3.0 Premium</title>
+  
+  <!-- Modern Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+  <script src="html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0A497B" />
+  <link rel="apple-touch-icon" href="logo-sanare.png" />
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card glass-panel">
+      <img src="logo-sanare.png" alt="Sanare Logo" class="login-logo" />
+      <h2>Acceso Premium</h2>
+      <p>Cotizador Oncológico Exclusivo</p>
+      
+      <div class="form-group" style="text-align: left;">
+        <label>Usuario</label>
+        <input type="text" id="loginUser" class="premium-input" placeholder="Ingresa tu usuario" />
+      </div>
+      <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" class="premium-input" placeholder="Ingresa tu contraseña" />
+      </div>
+      
+      <button id="btnLogin" class="btn btn-primary" style="width: 100%;">Ingresar Seguramento</button>
+      <div id="loginError" style="color: #e74c3c; margin-top: 10px; display: none; font-size: 0.9rem;"></div>
+    </div>
+  </div>
+
+  <!-- Hidden Container for PDF rendering -->
+  <div id="pdf-container" style="display: none;"></div>
+
+  <main class="app-container" id="app-container" style="display: none;">
+    <header class="glass-panel main-header header-glow">
+      <div class="logo-container">
+        <img src="logo-sanare.png" alt="Sanare" class="logo logo-levitate" />
+        <div class="sede-info">
+          <h1 class="gradient-text" style="margin-bottom: 5px;">Cotización</h1>
+          <label style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Dirección de la empresa</label>
+          <select id="sede" class="premium-input">
+            <option value="Toluca">Toluca</option>
+            <option value="Narvarte">Narvarte</option>
+            <option value="Morelia">Morelia</option>
+          </select>
+          <div id="direccion" style="margin-top:4px; font-size:0.85rem; color: var(--text-muted);">Av. Paseo Tollocan 2533, Delegación Santa María Totoltepec, 50246 Toluca de Lerdo, Méx.</div>
+          <div id="telefono" style="margin-top:2px; font-weight:bold; color: var(--primary-color);">Tel: 722 197 08 36</div>
+        </div>
+      </div>
+      <div class="header-details">
+        <div class="form-group">
+          <label>Fecha de emisión</label>
+          <input type="date" id="fechaEmision" class="premium-input" />
+        </div>
+        <div class="form-group">
+          <label>Válido hasta</label>
+          <input type="date" id="fechaValidez" class="premium-input" />
+        </div>
+
+        <div class="form-group esquema-loader-group">
+          <label>🧬 Cargar Esquema Oncológico</label>
+          <div class="esquema-loader-row">
+            <input list="listaEsquemas" id="esquemaSearch" class="premium-input esquema-select" placeholder="— Buscar esquema —" autocomplete="off" />
+            <datalist id="listaEsquemas"></datalist>
+            <button id="btnCargarEsquema" class="btn btn-esquema">Cargar</button>
+          </div>
+          <div id="esquema-badge" class="esquema-badge" style="display:none;"></div>
+        </div>
+        
+        <div class="form-group ocr-loader-group" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+          <label>🧠 IA: Leer Indicación Médica (PDF/Img)</label>
+          <div class="esquema-loader-row" style="margin-top: 8px;">
+            <input type="file" id="ocrFile" class="premium-input" accept=".pdf,image/*" style="padding: 5px; cursor: pointer;" />
+            <button id="btnAnalizarOcr" class="btn btn-esquema" style="background: linear-gradient(135deg, #8e44ad, #3498db); border-color: #8e44ad;">Analizar</button>
+          </div>
+          <div id="ocr-badge" class="esquema-badge" style="display:none; background: #fdf2f8; color: #db2777;"></div>
+        </div>
+
+        <div class="form-group history-loader-group" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+          <label>🕒 Histórico</label>
+          <button id="btnVerHistorico" class="btn btn-esquema" style="width: 100%; background: #2c3e50; border-color: #2c3e50;">Ver Historial de Cotizaciones</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="glass-panel form-section">
+      <div class="grid-form">
+        <div class="form-group">
+          <label>Nombre del paciente</label>
+          <input type="text" id="paciente" class="premium-input" placeholder="Nombre del paciente" />
+        </div>
+        <div class="form-group">
+          <label>Nombre del médico</label>
+          <input type="text" id="medico" class="premium-input" placeholder="Nombre del médico" />
+        </div>
+        <div class="form-group">
+          <label>Aseguradora / Modalidad</label>
+          <select id="modalidadPago" class="premium-input">
+            <option value="BOLSILLO">Pago de Bolsillo</option>
+            <option value="BUPA">BUPA</option>
+            <option value="AXA">AXA</option>
+            <option value="METLIFE">METLIFE</option>
+            <option value="INBURSA">INBURSA</option>
+            <option value="PLAN SEGURO">PLAN SEGURO</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>DX / Comentarios</label>
+          <textarea id="dx" class="premium-input" rows="2" placeholder="Diagnóstico / comentarios"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Esquema o tratamiento</label>
+          <input type="text" id="esquema" class="premium-input" placeholder="Ej. OXALIPLATINO" />
+        </div>
+        <div class="form-group">
+          <label>KAM</label>
+          <input type="text" id="kam" class="premium-input" placeholder="Corporativo / Nombre" />
+        </div>
+        <div class="form-group">
+          <label>Fecha de programación</label>
+          <input type="date" id="fechaProg" class="premium-input" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Medicamentos Section -->
+    <section class="glass-panel section-tech-med">
+      <h2 class="section-title">Medicamentos</h2>
+      <div class="search-row">
+        <input type="text" id="buscarMed" class="premium-input flex-grow" placeholder="Buscar medicamento o código..." />
+        <select id="ordenMed" class="premium-input">
+          <option value="nombre">Ordenar por: A–Z</option>
+          <option value="precio">Ordenar por: Precio (desc)</option>
+        </select>
+      </div>
+      <div class="action-row">
+        <select id="selMedicamento" class="premium-input flex-grow">
+          <!-- Options populated by JS -->
+        </select>
+        <input type="number" id="cantMed" class="premium-input cant-input" min="1" value="1" />
+        <button id="addMed" class="btn btn-tech-med action-btn">Agregar medicamento</button>
+      </div>
+    </section>
+
+    <!-- Servicios Section -->
+    <section class="glass-panel section-tech-serv">
+      <h2 class="section-title">Servicios</h2>
+      <div class="search-row">
+        <input type="text" id="buscarServ" class="premium-input flex-grow" placeholder="Buscar servicio..." />
+      </div>
+      <div class="action-row" style="flex-wrap: wrap;">
+        <select id="selServicio" class="premium-input flex-grow" style="min-width: 250px;">
+          <!-- Options populated by JS -->
+        </select>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; flex-grow: 1;">
+          <input type="number" id="cantServ" class="premium-input cant-input" min="1" value="1" title="Cantidad" />
+          <div class="desc-group">
+            <label>Precio ($)</label>
+            <input type="number" id="precioServ" class="premium-input" style="width: 110px; text-align: right;" min="0" value="0" />
+          </div>
+          <div class="desc-group">
+            <label>Desc (%)</label>
+            <input type="number" id="descServ" class="premium-input cant-input" min="0" max="100" value="0" />
+          </div>
+          <button id="addServ" class="btn btn-tech-serv action-btn">Agregar servicio</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass-panel dual-quote-section">
+      <h2 class="section-title">Comparativa de Cotización</h2>
+      
+      <div class="dual-container">
+        <!-- Cotización Patente -->
+        <div class="quote-card innovador">
+          <h3>Patente</h3>
+          <div class="table-container">
+            <table id="table-innovador" class="premium-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th>Cant</th>
+                  <th>P. Unit</th>
+                  <th>Desc%</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="totals-box">
+            <div class="totals-grid">
+              <span>Subtotal Mds:</span> <strong id="subtotal-innovador">$0.00</strong>
+              <span>Subtotal Srv:</span> <strong id="servicios-innovador">$0.00</strong>
+              <span style="font-size: 11px;">IVA Servicios (16%):</span> <strong id="iva-innovador">$0.00</strong>
+            </div>
+            <h4 class="grand-total">TOTAL: <span id="total-innovador">$0.00</span></h4>
+          </div>
+        </div>
+
+        <!-- Cotización Biocomparable -->
+        <div class="quote-card bio">
+          <h3>Biocomparable</h3>
+          <div class="table-container">
+            <table id="table-bio" class="premium-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th>Cant</th>
+                  <th>P. Unit</th>
+                  <th>Desc%</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="totals-box">
+            <div class="totals-grid">
+              <span>Subtotal Mds:</span> <strong id="subtotal-bio">$0.00</strong>
+              <span>Subtotal Srv:</span> <strong id="servicios-bio">$0.00</strong>
+              <span style="font-size: 11px;">IVA Servicios (16%):</span> <strong id="iva-bio">$0.00</strong>
+            </div>
+            <h4 class="grand-total">TOTAL: <span id="total-bio">$0.00</span></h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save and Download Buttons -->
+      <div style="margin-top:25px; text-align:center; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <button id="btn-save-quote" class="btn btn-esquema" style="width:100%; max-width:500px; font-size:1.1rem; padding:15px; background: #27ae60; border-color: #27ae60;">💾 Guardar Cotización</button>
+        <button id="btn-pdf-all" class="btn primary" style="width:100%; max-width:500px; font-size:1.1rem; padding:15px;">Descargar PDFs (Patente y Biocomparable)</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Historial -->
+  <div id="modalHistorial" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; width: 90%; max-width: 600px; border-radius: 12px; padding: 25px; max-height: 80vh; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="margin: 0; color: #0A497B;">🕒 Historial de Cotizaciones</h2>
+        <button id="btnCloseHistorial" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;">&times;</button>
+      </div>
+      <div id="historialList" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;">
+        <div style="text-align: center; color: #666; padding: 20px;">Cargando historial...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="assets_b64.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registrado con éxito'))
+          .catch(err => console.error('Error registrando Service Worker:', err));
+      });
+    }
+  </script>
+</body>
+</html>
