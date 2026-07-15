@@ -50,6 +50,10 @@ const dom = {
   serviciosBio: document.getElementById('servicios-bio'),
   ivaBio: document.getElementById('iva-bio'),
   totalBio: document.getElementById('total-bio'),
+  productividadInnovadorDiv: document.querySelector('#table-innovador').closest('.table-container').nextElementSibling.querySelector('.productividad-container'),
+  productividadInnovadorSpan: document.getElementById('productividad-innovador'),
+  productividadBioDiv: document.querySelector('#table-bio').closest('.table-container').nextElementSibling.querySelector('.productividad-container'),
+  productividadBioSpan: document.getElementById('productividad-bio'),
 
   btnPdfAll: document.getElementById('btn-pdf-all'),
   pdfContainer: document.getElementById('pdf-container')
@@ -140,14 +144,47 @@ dom.addMed.addEventListener('click', () => {
   let innovador = null;
   let bio = null;
 
-  if (pa) {
-    const alternatives = SANARE_DATA.medicamentos.filter(m => m.PA === pa);
-    innovador = alternatives.find(m => m.CLASIFICACION && m.CLASIFICACION.toUpperCase().includes('INNOVADOR'));
-    bio = alternatives.find(m => m.CLASIFICACION && (m.CLASIFICACION.toUpperCase().includes('BIO') || m.CLASIFICACION.toUpperCase().includes('GENERICO')));
-  }
+  const isInnovador = med.CLASIFICACION && med.CLASIFICACION.toUpperCase().includes('INNOVADOR');
+  const isBio = med.CLASIFICACION && (
+    med.CLASIFICACION.toUpperCase().includes('BIO') ||
+    med.CLASIFICACION.toUpperCase().includes('GENERICO') ||
+    med.CLASIFICACION.toUpperCase().includes('BIOEQUIVALENTE') ||
+    med.CLASIFICACION.toUpperCase().includes('BIOCOMPARABLE')
+  );
 
-  if (!innovador && med.CLASIFICACION && med.CLASIFICACION.toUpperCase().includes('INNOVADOR')) innovador = med;
-  if (!bio && med.CLASIFICACION && !med.CLASIFICACION.toUpperCase().includes('INNOVADOR')) bio = med;
+  if (isInnovador) {
+    // El usuario seleccionó el innovador; usarlo directamente
+    innovador = med;
+    // Buscar bio con misma descripción primero, luego cualquiera del mismo PA
+    if (pa) {
+      const alternatives = SANARE_DATA.medicamentos.filter(m =>
+        m.PA === pa &&
+        m.CLASIFICACION && (
+          m.CLASIFICACION.toUpperCase().includes('BIO') ||
+          m.CLASIFICACION.toUpperCase().includes('GENERICO') ||
+          m.CLASIFICACION.toUpperCase().includes('BIOEQUIVALENTE') ||
+          m.CLASIFICACION.toUpperCase().includes('BIOCOMPARABLE')
+        )
+      );
+      // Preferir bio con misma descripción (misma presentación)
+      bio = alternatives.find(m => m.DESCRIPCION === med.DESCRIPCION) || alternatives[0] || null;
+    }
+  } else if (isBio) {
+    // El usuario seleccionó el bio; usarlo directamente
+    bio = med;
+    // Buscar innovador con misma descripción primero, luego cualquiera del mismo PA
+    if (pa) {
+      const alternatives = SANARE_DATA.medicamentos.filter(m =>
+        m.PA === pa &&
+        m.CLASIFICACION && m.CLASIFICACION.toUpperCase().includes('INNOVADOR')
+      );
+      // Preferir innovador con misma descripción (misma presentación)
+      innovador = alternatives.find(m => m.DESCRIPCION === med.DESCRIPCION) || alternatives[0] || null;
+    }
+  } else {
+    // Sin clasificación clara: usar como innovador por defecto
+    innovador = med;
+  }
 
   state.items.push({
     id: Date.now(),
@@ -164,6 +201,7 @@ dom.addMed.addEventListener('click', () => {
   filterMeds();
   renderCart();
 });
+
 
 // --- SERVICIOS LOGIC ---
 let currentServs = [];
@@ -245,6 +283,12 @@ function renderCart() {
 
   let subInno = 0, servInno = 0;
   let subBio = 0, servBio = 0;
+  
+  let prodInnovador = 0;
+  let prodBio = 0;
+  
+  const modSelect = document.getElementById('modalidadPago');
+  const modalidadActiva = modSelect.options[modSelect.selectedIndex].text; // 'BOLSILLO' or 'ASEGURADORA'
 
   state.items.forEach(item => {
     // ---- Medicamento from catalog (old type) ----
@@ -399,6 +443,49 @@ function renderCart() {
   dom.serviciosBio.textContent = formatCurrency(servBio);
   dom.ivaBio.textContent = formatCurrency(ivaBi);
   dom.totalBio.textContent = formatCurrency(subBio + servBio + ivaBi);
+
+  // Calcular Productividad
+  state.items.forEach(item => {
+    if (item.type === 'med') {
+      const targetI = item.innovador;
+      if (targetI && (targetI['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetI['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+        const prodI = modalidadActiva === 'BOLSILLO' ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodInnovador += prodI * item.cant;
+      }
+
+      const targetB = item.bio;
+      if (targetB && (targetB['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetB['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+        const prodB = modalidadActiva === 'BOLSILLO' ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodBio += prodB * item.cant;
+      }
+    } else if (item.type === 'esq_med') {
+      const targetI = item.patente;
+      if (targetI && (targetI['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetI['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+        const prodI = modalidadActiva === 'BOLSILLO' ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodInnovador += prodI * item.cant;
+      }
+
+      const targetB = item.bio;
+      if (targetB && (targetB['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetB['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+        const prodB = modalidadActiva === 'BOLSILLO' ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodBio += prodB * item.cant;
+      }
+    }
+  });
+
+  if (prodInnovador > 0) {
+    dom.productividadInnovadorDiv.style.display = 'block';
+    dom.productividadInnovadorSpan.textContent = formatCurrency(prodInnovador);
+  } else {
+    dom.productividadInnovadorDiv.style.display = 'none';
+  }
+
+  if (prodBio > 0) {
+    dom.productividadBioDiv.style.display = 'block';
+    dom.productividadBioSpan.textContent = formatCurrency(prodBio);
+  } else {
+    dom.productividadBioDiv.style.display = 'none';
+  }
 }
 
 // --- PDF GENERATION ---
@@ -446,6 +533,7 @@ function generatePDF(type) {
   let medRowsHtml = '';
   let subTotalMed = 0;
   let hasMeds = false;
+  let prodTotal = 0;
 
   state.items.forEach(item => {
     if (item.type === 'med') {
@@ -455,6 +543,11 @@ function generatePDF(type) {
       const p = getPrice(target);
       const sub = p * item.cant;
       subTotalMed += sub;
+
+      if (target['TIPO DE USO'] === 'QUIMIOTERAPIA' || target['TIPO DE USO'] === 'INMUNOTERAPIA') {
+        const prod = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '') ? (target.PRODUCTIVIDAD_BOLSILLO || 0) : (target.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodTotal += prod * item.cant;
+      }
       
       const isFallback = (type === 'bio' && !item.bio) || (type !== 'bio' && !item.innovador);
       const fallbackStr = isFallback ? (type === 'bio' ? ' <span style="color:#0A497B; font-weight:bold; font-size:9px;">[Usa Patente]</span>' : ' <span style="color:#c0392b; font-weight:bold; font-size:9px;">[Usa Genérico]</span>') : '';
@@ -484,6 +577,11 @@ function generatePDF(type) {
       const { precio_vial: p_vial, precio_total: pt } = getPrecioEsqItem(target);
       const sub = pt * item.cant;
       subTotalMed += sub;
+
+      if (target['TIPO DE USO'] === 'QUIMIOTERAPIA' || target['TIPO DE USO'] === 'INMUNOTERAPIA') {
+        const prod = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '') ? (target.PRODUCTIVIDAD_BOLSILLO || 0) : (target.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodTotal += prod * item.cant;
+      }
 
       const isFallback = (type === 'bio' && !item.bio) || (type !== 'bio' && !item.patente);
       const fallbackStr = isFallback ? (type === 'bio' ? ' <span style="color:#0A497B; font-weight:bold; font-size:9px;">[Usa Patente]</span>' : ' <span style="color:#c0392b; font-weight:bold; font-size:9px;">[Usa Genérico]</span>') : '';
@@ -641,6 +739,16 @@ function generatePDF(type) {
           <td style="text-align:left; padding:2px 10px; color:#555;">${formatCurrency(subTotalServ)}</td>
           <td colspan="4"></td>
         </tr>
+        ${prodTotal > 0 ? `
+        <tr>
+          <td colspan="6" style="border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 5px;"></td>
+        </tr>
+        <tr>
+          <td colspan="4"></td>
+          <td style="text-align:center; font-weight:bold; font-size:11px; color:#f39c12;">Productividad:</td>
+          <td style="text-align:right; font-weight:bold; font-size:12px; color:#f39c12;">${formatCurrency(prodTotal)}</td>
+        </tr>
+        ` : ''}
       </table>
     </div>
 
